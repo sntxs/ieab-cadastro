@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Área Administrativa - Sistema de Cadastro</title>
+    <link rel="stylesheet" href="../assets/css/admin.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
+    <script src="../assets/js/admin.js" defer></script>
+</head>
+<body class="bg-gray-900 text-gray-100">
+    <div id="admin" class="container mx-auto p-4 max-w-full">
+        <!-- Alerta de Novo Cadastro -->
+        <div v-if="showUpdateAlert" 
+             class="bg-green-600 text-white px-4 py-2 rounded-md shadow-lg fixed top-4 right-4 flex items-center space-x-2 animate-fade-in">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            <span>Novo membro cadastrado!</span>
+            <button @click="showUpdateAlert = false" class="ml-2 hover:text-gray-200">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Tela de Login -->
+        <div v-if="!isAuthenticated" class="login-container">
+            <div class="login-box bg-gray-800 p-8 rounded-lg shadow-lg">
+                <h2 class="text-2xl font-bold mb-6 text-indigo-400 sm:text-center">Login Administrativo</h2>
+                <form @submit.prevent="login" class="space-y-6">
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-300">Senha:</label>
+                        <input v-model="password" 
+                            type="password" 
+                            id="password"
+                            required
+                            class="mt-1 block w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <button type="submit"
+                        class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-300">
+                        Entrar
+                    </button>
+                    <p v-if="loginError" class="text-red-500 text-sm text-center">{{ loginError }}</p>
+                </form>
+            </div>
+        </div>
+
+        <!-- Conteúdo Admin -->
+        <div v-else class="space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+                <div class="flex justify-between items-center w-full">
+                    <h2 class="text-2xl font-bold text-indigo-400">Membros Cadastrados</h2>
+                </div>
+                <div class="button-group flex flex-col md:flex-row gap-2 w-full md:w-auto">
+                    <button @click="exportToExcel"
+                        class="bg-green-600 text-white px-3 py-1.5 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-300 w-32">
+                        Exportar para Excel
+                    </button>
+                    <button @click="exportarBackup"
+                        class="bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-300 w-32">
+                        Exportar Backup
+                    </button>
+                    <label id="campoBackup" class="bg-yellow-600 text-white px-3 rounded-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition duration-300 cursor-pointer text-center w-32">
+                        Importar Backup
+                        <input type="file" @change="importarBackup" accept=".json" class="hidden">
+                    </label>
+                    <button @click="logout" 
+                        class="bg-red-600 text-white px-3 py-1.5 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition duration-300 w-32">
+                        Sair
+                    </button>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <input v-model="termoPesquisa" type="text" placeholder="Pesquisar membros..."
+                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-gray-800 rounded-lg overflow-hidden">
+                    <thead class="bg-gray-700">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Nome</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Email</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Telefone</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">CPF</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Endereço</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Congregação</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-700">
+                        <tr v-for="(membro, index) in membrosFiltrados" :key="index" class="hover:bg-gray-700">
+                            <td class="px-6 py-4 whitespace-nowrap">{{ membro.nome }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">{{ membro.email }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">{{ membro.telefone }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">{{ membro.cpf }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">{{ membro.endereco }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">{{ membro.congregacao }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap space-x-2">
+                                <button @click="editarMembro(index)"
+                                    class="bg-blue-600 text-white py-1 px-3 rounded hover:bg-blue-700">
+                                    Editar
+                                </button>
+                                <button @click="apagarMembro(index)"
+                                    class="bg-red-600 text-white py-1 px-3 rounded hover:bg-red-700">
+                                    Apagar
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Modal de Edição -->
+        <div v-if="modalEditarAberto" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+            <div class="modal-content bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-2xl text-center">
+                <h3 class="text-xl font-bold text-indigo-400 mb-4">Editar Membro</h3>
+                <form @submit.prevent="salvarEdicao" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Nome:</label>
+                            <input 
+                                type="text" 
+                                v-model="membroEditando.nome"
+                                id="edit-nome"
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                required
+                            >
+                            <span class="text-red-500 text-xs hidden" id="nome-error"></span>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Email:</label>
+                            <input 
+                                type="email" 
+                                v-model="membroEditando.email"
+                                id="edit-email"
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                required
+                            >
+                            <span class="text-red-500 text-xs hidden" id="email-error"></span>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Telefone:</label>
+                            <input 
+                                type="text" 
+                                v-model="membroEditando.telefone"
+                                id="edit-telefone"
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                required
+                            >
+                            <span class="text-red-500 text-xs hidden" id="telefone-error"></span>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">CPF:</label>
+                            <input 
+                                type="text" 
+                                v-model="membroEditando.cpf"
+                                id="edit-cpf"
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                required
+                            >
+                            <span class="text-red-500 text-xs hidden" id="cpf-error"></span>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Congregação:</label>
+                            <select 
+                                v-model="membroEditando.congregacao"
+                                id="edit-congregacao"
+                                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                required
+                            >
+                                <option value="">Selecione uma congregação</option>
+                                <option value="IEAB - Central">IEAB - Central</option>
+                                <option value="IEAB - Norte">IEAB - Norte</option>
+                            </select>
+                            <span class="text-red-500 text-xs hidden" id="congregacao-error"></span>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Endereço:</label>
+                            <input 
+                                type="text" 
+                                v-model="membroEditando.endereco"
+                                disabled
+                                class="w-full px-4 py-2 bg-gray-600 border border-gray-600 rounded-md text-gray-400 cursor-not-allowed"
+                            >
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end space-x-3 mt-6">
+                        <button 
+                            type="button" 
+                            @click="fecharModal"
+                            class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition duration-300">
+                            Cancelar
+                        </button>
+                        <button 
+                            type="submit"
+                            class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition duration-300">
+                            Salvar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal de Sucesso -->
+        <div v-if="showSuccessModal" class="fixed inset-0 flex items-center justify-center z-50">
+            <div class="fixed inset-0 bg-black opacity-50" @click="closeSuccessModal"></div>
+            <div class="bg-gray-800 p-6 rounded-lg shadow-xl z-10 transform transition-all duration-300"
+                 :class="modalClass">
+                <div class="text-center">
+                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                        <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-100 mb-4">{{ successMessage }}</h3>
+                    <button @click="closeSuccessModal" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition duration-300">
+                        Fechar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Confirmação de Exclusão -->
+        <div v-if="showDeleteModal" class="fixed inset-0 flex items-center justify-center z-50">
+            <div class="fixed inset-0 bg-black opacity-50" @click="closeDeleteModal"></div>
+            <div class="bg-gray-800 p-6 rounded-lg shadow-xl z-10 transform transition-all duration-300"
+                 :class="modalClass">
+                <div class="text-center">
+                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                        <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-100 mb-4">Confirmar Exclusão</h3>
+                    <p class="text-gray-300 mb-6">Tem certeza que deseja excluir este membro? Esta ação não pode ser desfeita.</p>
+                    <div class="flex justify-center space-x-4">
+                        <button @click="closeDeleteModal" 
+                            class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition duration-300">
+                            Cancelar
+                        </button>
+                        <button @click="confirmarExclusao" 
+                            class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition duration-300">
+                            Excluir
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

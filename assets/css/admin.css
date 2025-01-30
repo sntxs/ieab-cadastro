@@ -1,0 +1,153 @@
+/* Estilos gerais */
+.container {
+    width: 100%;
+    padding: 1rem;
+}
+
+/* Estilos para a tabela responsiva */
+.table-container {
+    overflow-x: auto;
+    margin: 1rem 0;
+    border-radius: 0.5rem;
+}
+
+table {
+    min-width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+/* Ajustes para telas menores */
+@media (max-width: 768px) {
+    .button-group {
+        padding-left: 6rem;
+        padding-right: 6rem;
+        padding-top: 0.375rem;
+        padding-bottom: 0.375rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .button-group button,
+    .button-group label {
+        width: 100%;
+        margin: 0;
+    }
+
+    .container {
+        padding: 0.5rem;
+    }
+
+    .overflow-x-auto {
+        width: 100% !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    table {
+        table-layout: fixed !important;
+        min-width: 1735px !important;
+        /* Força uma largura mínima maior que a tela */
+    }
+
+    td,
+    th {
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+}
+
+/* Centralização da tela de login */
+.login-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.login-box {
+    width: 100%;
+    max-width: 400px;
+    margin: 1rem;
+}
+
+/* Estilos para a tabela responsiva */
+@media (max-width: 640px) {
+    .table-container {
+        margin: 0 -1rem;
+    }
+
+    table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    th,
+    td {
+        padding: 0.5rem;
+        text-align: left;
+    }
+}
+
+/* Ajustes para o botão de importação */
+label.cursor-pointer {
+    display: inline-block;
+    margin-top: 1rem;
+}
+
+/* Ajustes de padding e margin para telas menores */
+@media (max-width: 768px) {
+    .space-y-6>*+* {
+        margin-top: 1rem;
+    }
+}
+
+/* Ajustes para os botões do grupo */
+.button-group button,
+.button-group label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px; /* Altura fixa para todos os botões */
+    line-height: 1;
+}
+
+#campoBackup {
+    padding: 0 1rem; /* Remove padding vertical e mantém padding horizontal */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0; /* Remove qualquer margem */
+    height: 40px; /* Mesma altura dos outros botões */
+}
+
+thead th {
+    text-align: center !important;
+}
+
+/* Estilos para o modal */
+.transform {
+    transition-property: transform, opacity;
+    transition-duration: 300ms;
+}
+
+.opacity-0 {
+    opacity: 0;
+}
+
+.opacity-100 {
+    opacity: 1;
+}
+
+.scale-95 {
+    transform: scale(0.95);
+}
+
+.scale-100 {
+    transform: scale(1);
+}
